@@ -62,21 +62,29 @@ export default async function RenterDetailPage({
     }).then(payments => payments.map(p => p.month));
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-6 sm:space-y-8">
             {/* Header */}
-            <div className="flex justify-between items-start">
-                <div>
-                    <h2 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
-                        {renter.name}
+            <div className="flex justify-between items-start gap-3">
+                <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <h2 className="text-xl sm:text-3xl font-bold tracking-tight text-foreground">
+                            {renter.name}
+                        </h2>
                         <Badge variant="outline" className="bg-green-50 text-green-700 hover:bg-green-50 hover:text-green-700">Active</Badge>
-                    </h2>
-                    <p className="text-muted-foreground mt-1">
-                        {renter.email} • {renter.phone || "No Phone"} • Moved in {format(new Date(renter.moveInDate), "MMM d, yyyy")} • Rent: ₹{renter.monthlyRentAmount.toLocaleString('en-IN')}
-                    </p>
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs sm:text-sm text-muted-foreground">
+                        <span>{renter.email}</span>
+                        <span className="hidden sm:inline">•</span>
+                        <span>{renter.phone || "No Phone"}</span>
+                        <span className="hidden sm:inline">•</span>
+                        <span>Moved in {format(new Date(renter.moveInDate), "MMM d, yyyy")}</span>
+                        <span className="hidden sm:inline">•</span>
+                        <span>Rent: ₹{renter.monthlyRentAmount.toLocaleString('en-IN')}</span>
+                    </div>
                 </div>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-9 w-9">
+                        <Button variant="ghost" size="icon" className="h-9 w-9 flex-shrink-0">
                             <MoreVertical className="h-5 w-5" />
                         </Button>
                     </DropdownMenuTrigger>
@@ -91,7 +99,7 @@ export default async function RenterDetailPage({
                                     email: renter.email,
                                     phone: renter.phone,
                                     monthlyRentAmount: renter.monthlyRentAmount,
-                                    moveInDate: renter.moveInDate.toISOString() // pass raw date
+                                    moveInDate: renter.moveInDate.toISOString()
                                 }}
                             />
                         </DropdownMenuItem>
@@ -103,7 +111,7 @@ export default async function RenterDetailPage({
                 </DropdownMenu>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
                 {/* Left Column */}
                 <div className="space-y-8">
                     <Card>
