@@ -1,0 +1,135 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  password      String?
+  image         String?
+  
+  // Relations
+  accounts      Account[]
+  sessions      Session[]
+  renters       Renter[]
+  payments      Payment[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Account {
+  id                 String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId             String  @db.ObjectId
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  sessionToken String   @unique
+  userId       String   @db.ObjectId
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  email      String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([email, token])
+  @@map("verification_tokens")
+}
+
+model Renter {
+  id                String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String    @db.ObjectId
+  name              String
+  email             String
+  phone             String
+  monthlyRentAmount Float
+  moveInDate        DateTime
+  
+  // Relations
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments          Payment[]
+  documents         Document[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("renters")
+}
+
+model Payment {
+  id                     String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId                 String    @db.ObjectId
+  renterId               String?   @db.ObjectId
+  renterName             String?   // Preserved for history after renter deletion
+  rentAmount             Float?    // Snapshot of rent amount at time of payment
+  month                  String    // e.g., "2023-10"
+  
+  rentPaid               Boolean   @default(false)
+  
+  electricityUnits       Float?
+  electricityCostPerUnit Float?
+  electricityTotal       Float?
+  electricityPaid        Boolean   @default(false)
+  
+  // Relations
+  user                   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  renter                 Renter?   @relation(fields: [renterId], references: [id], onDelete: SetNull)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([renterId])
+  @@map("payments")
+}
+
+model Document {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  renterId        String    @db.ObjectId
+  title           String
+  url             String    // Cloudinary URL
+  
+  // Relations
+  renter          Renter    @relation(fields: [renterId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([renterId])
+  @@map("documents")
+}
