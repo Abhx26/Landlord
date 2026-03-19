@@ -35,9 +35,9 @@ export async function POST(req: Request) {
         }
 
         const json = await req.json();
-        const { name, email, phone, monthlyRentAmount, moveInDate } = json;
+        const { name, phone, monthlyRentAmount, moveInDate, securityDeposit, room } = json;
 
-        if (!name || !email || !phone || !monthlyRentAmount || !moveInDate) {
+        if (!name || !phone || !monthlyRentAmount || !moveInDate) {
             return NextResponse.json(
                 { error: "Missing required fields" },
                 { status: 400 }
@@ -47,10 +47,11 @@ export async function POST(req: Request) {
         const newRenter = await prisma.renter.create({
             data: {
                 name,
-                email,
                 phone,
                 monthlyRentAmount: parseFloat(monthlyRentAmount),
                 moveInDate: new Date(moveInDate),
+                securityDeposit: securityDeposit ? parseFloat(securityDeposit) : null,
+                room: Array.isArray(room) ? room : [],
                 userId: session.user.id,
             },
         });

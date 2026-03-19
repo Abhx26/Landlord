@@ -15,15 +15,36 @@ export async function POST(
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { month, units, costPerUnit, total } = await req.json();
+        const {
+            month,
+            startDate,
+            endDate,
+            openingReading,
+            closingReading,
+            openingPhotoUrl,
+            closingPhotoUrl,
+            units,
+            total,
+        } = await req.json();
 
-        if (!month || units === undefined || costPerUnit === undefined || total === undefined) {
+        if (
+            !month ||
+            !startDate ||
+            !endDate ||
+            openingReading === undefined ||
+            closingReading === undefined ||
+            units === undefined ||
+            total === undefined
+        ) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
         }
 
-        // A real electricity bill must have a positive total
         if (total <= 0) {
             return NextResponse.json({ error: "Bill total must be greater than 0" }, { status: 400 });
+        }
+
+        if (new Date(endDate) < new Date(startDate)) {
+            return NextResponse.json({ error: "End date cannot be before start date" }, { status: 400 });
         }
 
         // Verify renter
@@ -35,14 +56,26 @@ export async function POST(
             return NextResponse.json({ error: "Renter not found" }, { status: 404 });
         }
 
-        // Find the payment for this month 
+        // Find the payment for this month
         const existingPayment = await prisma.payment.findFirst({
             where: { renterId: renter.id, month }
         });
 
+        const electricityData = {
+            electricityStartDate: new Date(startDate),
+            electricityEndDate: new Date(endDate),
+            openingReading: parseFloat(String(openingReading)),
+            closingReading: parseFloat(String(closingReading)),
+            openingPhotoUrl: openingPhotoUrl || null,
+            closingPhotoUrl: closingPhotoUrl || null,
+            electricityUnits: parseFloat(String(units)),
+            electricityCostPerUnit: 0,
+            electricityTotal: parseFloat(String(total)),
+            electricityPaid: false,
+        };
+
         let payment;
         if (existingPayment) {
-            // Check if this month ALREADY has an electricity bill generated
             if (existingPayment.electricityTotal !== null) {
                 return NextResponse.json(
                     { error: "An electricity bill has already been generated for this month." },
@@ -50,18 +83,11 @@ export async function POST(
                 );
             }
 
-            // Update existing payment record to add the newly generated electricity bill
             payment = await prisma.payment.update({
                 where: { id: existingPayment.id },
-                data: {
-                    electricityUnits: units,
-                    electricityCostPerUnit: costPerUnit,
-                    electricityTotal: total,
-                    electricityPaid: false
-                }
+                data: electricityData,
             });
         } else {
-            // Create brand new payment record containing the electricity bill (rent is defaulted to unpaid)
             payment = await prisma.payment.create({
                 data: {
                     renterId: renter.id,
@@ -69,15 +95,11 @@ export async function POST(
                     month,
                     renterName: renter.name,
                     rentAmount: renter.monthlyRentAmount,
-                    electricityUnits: units,
-                    electricityCostPerUnit: costPerUnit,
-                    electricityTotal: total,
-                    electricityPaid: false,
-                    rentPaid: false
-                }
+                    rentPaid: false,
+                    ...electricityData,
+                },
             });
         }
-        // We no longer attempt to send an email, logic has been removed.
 
         return NextResponse.json(payment, { status: 201 });
     } catch (error) {

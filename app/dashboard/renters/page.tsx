@@ -59,7 +59,6 @@ export default async function RentersPage() {
                                         <div className="flex items-center justify-between">
                                             <div className="flex-1 min-w-0">
                                                 <p className="font-semibold text-foreground truncate">{renter.name}</p>
-                                                <p className="text-xs text-muted-foreground truncate mt-0.5">{renter.email}</p>
                                             </div>
                                             <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0 ml-2" />
                                         </div>
@@ -90,7 +89,6 @@ export default async function RentersPage() {
                                     <thead className="text-xs text-muted-foreground uppercase bg-muted/50">
                                         <tr>
                                             <th className="px-6 py-3 font-medium">Name</th>
-                                            <th className="px-6 py-3 font-medium">Email</th>
                                             <th className="px-6 py-3 font-medium">Monthly Rent</th>
                                             <th className="px-6 py-3 font-medium">Move-in Date</th>
                                             <th className="px-6 py-3 font-medium text-right">Actions</th>
@@ -100,7 +98,6 @@ export default async function RentersPage() {
                                         {renters.map((renter) => (
                                             <tr key={renter.id} className="bg-card hover:bg-muted/50 transition-colors">
                                                 <td className="px-6 py-4 font-medium text-foreground">{renter.name}</td>
-                                                <td className="px-6 py-4">{renter.email}</td>
                                                 <td className="px-6 py-4 font-medium">
                                                     ₹{renter.monthlyRentAmount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                 </td>

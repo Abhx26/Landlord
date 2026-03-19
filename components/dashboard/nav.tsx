@@ -7,6 +7,7 @@ import {
   Home,
   Users,
   IndianRupee,
+  Zap,
 } from "lucide-react";
 
 const routes = [
@@ -22,9 +23,14 @@ const routes = [
     href: "/dashboard/renters",
   },
   {
-    label: "Payments",
+    label: "Monthly Rent",
     icon: IndianRupee,
-    href: "/dashboard/payments",
+    href: "/dashboard/payments/rent",
+  },
+  {
+    label: "Electricity Rent",
+    icon: Zap,
+    href: "/dashboard/payments/electricity",
   },
 ];
 

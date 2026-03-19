@@ -19,6 +19,13 @@ type PaymentUI = {
     rentPaid: boolean;
     electricityTotal: number | null;
     electricityPaid: boolean;
+    electricityStartDate: string | null;
+    electricityEndDate: string | null;
+    openingReading: number | null;
+    closingReading: number | null;
+    electricityUnits: number | null;
+    openingPhotoUrl: string | null;
+    closingPhotoUrl: string | null;
     isNewRecord: boolean;
 };
 
@@ -98,16 +105,52 @@ export function PaymentList({
         return d.toLocaleString("default", { month: "long", year: "numeric" });
     })();
 
+    const formatDateShort = (dateStr: string) => {
+        return new Date(dateStr).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+    };
+
     const handleSendReminder = (payment: PaymentUI) => {
         const phone = payment.renterPhone.replace(/[^0-9]/g, "");
         if (!phone) {
             toast.error("No phone number available for this renter.");
             return;
         }
-        const unpaidItems: string[] = [];
-        if (!payment.rentPaid) unpaidItems.push(`Rent of ₹${payment.monthlyRentAmount.toLocaleString("en-IN")}`);
-        if (payment.electricityTotal && !payment.electricityPaid) unpaidItems.push(`Electricity bill of ₹${payment.electricityTotal.toFixed(2)}`);
-        const message = `Hi ${payment.renterName}, this is a friendly reminder that your ${unpaidItems.join(" and ")} for ${displayMonth} is pending. Please make the payment at your earliest convenience. Thank you!`;
+
+        let message = `Hi ${payment.renterName},\n\n`;
+
+        // Rent reminder
+        if (!payment.rentPaid) {
+            message += `Your *Rent of ₹${payment.monthlyRentAmount.toLocaleString("en-IN")}* for ${displayMonth} is pending.\n\n`;
+        }
+
+        // Electricity bill with full details
+        if (payment.electricityTotal && !payment.electricityPaid) {
+            const hasDateRange = payment.electricityStartDate && payment.electricityEndDate;
+            const periodStr = hasDateRange
+                ? `${formatDateShort(payment.electricityStartDate!)} to ${formatDateShort(payment.electricityEndDate!)}`
+                : displayMonth;
+
+            message += `Your *Electricity Bill* for the period *${periodStr}* is ready.\n`;
+
+            if (payment.openingReading != null && payment.closingReading != null && payment.electricityUnits != null) {
+                message += `Units Consumed: *${payment.electricityUnits}* (From ${payment.openingReading} to ${payment.closingReading})\n`;
+            }
+
+            message += `Total Amount: *₹${payment.electricityTotal.toFixed(2)}*\n`;
+
+            // Add proof photo links
+            if (payment.openingPhotoUrl) {
+                message += `View Opening Meter Photo: ${payment.openingPhotoUrl}\n`;
+            }
+            if (payment.closingPhotoUrl) {
+                message += `View Closing Meter Photo: ${payment.closingPhotoUrl}\n`;
+            }
+
+            message += `\n`;
+        }
+
+        message += `Please make the payment at your earliest convenience. Thank you!`;
+
         window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, "_blank");
         toast.success("Opening WhatsApp...");
     };

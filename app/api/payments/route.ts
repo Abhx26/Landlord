@@ -86,11 +86,16 @@ export async function PATCH(req: Request) {
             return NextResponse.json({ error: "Invalid field" }, { status: 400 });
         }
 
+        // Build update data with paidAt timestamp
+        const paidAtField = field === "rentPaid" ? "rentPaidAt" : "electricityPaidAt";
+        const updateData: Record<string, any> = {
+            [field]: value,
+            [paidAtField]: value ? new Date() : null,
+        };
+
         const updatedPayment = await prisma.payment.update({
             where: { id: paymentId },
-            data: {
-                [field]: value
-            }
+            data: updateData
         });
 
         return NextResponse.json(updatedPayment);

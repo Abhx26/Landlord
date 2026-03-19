@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Pencil, Loader2 } from "lucide-react";
+import { Pencil, Loader2, Check } from "lucide-react";
 import {
     Dialog,
     DialogContent,
@@ -17,14 +17,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
+const ROOM_OPTIONS = [
+    "1st Floor 1BHK",
+    "1st Floor Room",
+    "2nd Floor 1BHK",
+    "2nd Floor Room",
+];
+
 type EditRenterModalProps = {
     renterId: string;
     initialData: {
         name: string;
-        email: string;
         phone: string;
         monthlyRentAmount: number;
-        moveInDate: string; // ISO string format
+        moveInDate: string;
+        securityDeposit: number | null;
+        room: string[];
     };
 };
 
@@ -33,19 +41,27 @@ export function EditRenterModal({ renterId, initialData }: EditRenterModalProps)
     const [open, setOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
-    // Format the date properly for an <input type="date">
     const formattedDate = new Date(initialData.moveInDate).toISOString().split('T')[0];
 
     const [formData, setFormData] = useState({
         name: initialData.name,
-        email: initialData.email,
         phone: initialData.phone || "",
         monthlyRentAmount: initialData.monthlyRentAmount.toString(),
         moveInDate: formattedDate,
+        securityDeposit: initialData.securityDeposit?.toString() || "",
     });
+    const [selectedRooms, setSelectedRooms] = useState<string[]>(
+        Array.isArray(initialData.room) ? initialData.room : (initialData.room ? [initialData.room] : [])
+    );
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    };
+
+    const toggleRoom = (room: string) => {
+        setSelectedRooms((prev) =>
+            prev.includes(room) ? prev.filter((r) => r !== room) : [...prev, room]
+        );
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -59,6 +75,8 @@ export function EditRenterModal({ renterId, initialData }: EditRenterModalProps)
                 body: JSON.stringify({
                     ...formData,
                     monthlyRentAmount: parseFloat(formData.monthlyRentAmount),
+                    securityDeposit: formData.securityDeposit ? parseFloat(formData.securityDeposit) : null,
+                    room: selectedRooms,
                 }),
             });
 
@@ -68,7 +86,7 @@ export function EditRenterModal({ renterId, initialData }: EditRenterModalProps)
 
             toast.success("Renter updated successfully!");
             setOpen(false);
-            router.refresh(); // Refresh the page to show updated details
+            router.refresh();
         } catch (error) {
             toast.error("Failed to update renter. Please try again.");
             console.error(error);
@@ -105,30 +123,41 @@ export function EditRenterModal({ renterId, initialData }: EditRenterModalProps)
                                 onChange={handleChange}
                             />
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="grid gap-2">
-                                <Label htmlFor="phone">Phone Number</Label>
-                                <Input
-                                    id="phone"
-                                    name="phone"
-                                    type="tel"
-                                    placeholder="+919876543210"
-                                    required
-                                    value={formData.phone}
-                                    onChange={handleChange}
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="email">Email Address</Label>
-                                <Input
-                                    id="email"
-                                    name="email"
-                                    type="email"
-                                    placeholder="john@example.com"
-                                    required
-                                    value={formData.email}
-                                    onChange={handleChange}
-                                />
+                        <div className="grid gap-2">
+                            <Label htmlFor="phone">Phone Number</Label>
+                            <Input
+                                id="phone"
+                                name="phone"
+                                type="tel"
+                                placeholder="+919876543210"
+                                required
+                                value={formData.phone}
+                                onChange={handleChange}
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label>Room / Unit</Label>
+                            <div className="grid grid-cols-2 gap-2">
+                                {ROOM_OPTIONS.map((room) => {
+                                    const isSelected = selectedRooms.includes(room);
+                                    return (
+                                        <button
+                                            key={room}
+                                            type="button"
+                                            onClick={() => toggleRoom(room)}
+                                            className={`flex items-center gap-2 px-3 py-2 rounded-md border text-sm transition-colors ${
+                                                isSelected
+                                                    ? "border-primary bg-primary/10 text-primary font-medium"
+                                                    : "border-border bg-background text-muted-foreground hover:bg-muted/50"
+                                            }`}
+                                        >
+                                            <div className={`flex items-center justify-center w-4 h-4 rounded-sm border ${isSelected ? "border-primary bg-primary" : "border-muted-foreground/40"}`}>
+                                                {isSelected && <Check className="w-3 h-3 text-primary-foreground" />}
+                                            </div>
+                                            {room}
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
@@ -147,16 +176,29 @@ export function EditRenterModal({ renterId, initialData }: EditRenterModalProps)
                                 />
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="moveInDate">Move-in Date</Label>
+                                <Label htmlFor="securityDeposit">Security Deposit (₹)</Label>
                                 <Input
-                                    id="moveInDate"
-                                    name="moveInDate"
-                                    type="date"
-                                    required
-                                    value={formData.moveInDate}
+                                    id="securityDeposit"
+                                    name="securityDeposit"
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    placeholder="5000"
+                                    value={formData.securityDeposit}
                                     onChange={handleChange}
                                 />
                             </div>
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="moveInDate">Move-in Date</Label>
+                            <Input
+                                id="moveInDate"
+                                name="moveInDate"
+                                type="date"
+                                required
+                                value={formData.moveInDate}
+                                onChange={handleChange}
+                            />
                         </div>
                     </div>
                     <DialogFooter>

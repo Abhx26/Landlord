@@ -9,6 +9,7 @@ import { DocumentVault } from "./document-vault";
 import { ElectricityBillGenerator } from "./electricity-bill-generator";
 import { EditRenterModal } from "./edit-renter-modal";
 import { DeleteRenterButton } from "./delete-renter-button";
+import { PaymentHistory } from "./payment-history";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -42,8 +43,7 @@ export default async function RenterDetailPage({
                 orderBy: { createdAt: "desc" }
             },
             payments: {
-                orderBy: { createdAt: "desc" },
-                take: 5 // Show recent 5 payments
+                orderBy: { createdAt: "desc" }
             }
         }
     });
@@ -61,6 +61,26 @@ export default async function RenterDetailPage({
         select: { month: true }
     }).then(payments => payments.map(p => p.month));
 
+    // Serialize payments for client component
+    const serializedPayments = renter.payments.map(p => ({
+        id: p.id,
+        month: p.month,
+        rentAmount: p.rentAmount,
+        rentPaid: p.rentPaid,
+        rentPaidAt: p.rentPaidAt?.toISOString() || null,
+        electricityTotal: p.electricityTotal,
+        electricityPaid: p.electricityPaid,
+        electricityPaidAt: p.electricityPaidAt?.toISOString() || null,
+        electricityStartDate: p.electricityStartDate?.toISOString() || null,
+        electricityEndDate: p.electricityEndDate?.toISOString() || null,
+        openingReading: p.openingReading,
+        closingReading: p.closingReading,
+        electricityUnits: p.electricityUnits,
+        openingPhotoUrl: p.openingPhotoUrl,
+        closingPhotoUrl: p.closingPhotoUrl,
+        createdAt: p.createdAt.toISOString(),
+    }));
+
     return (
         <div className="space-y-6 sm:space-y-8">
             {/* Header */}
@@ -73,13 +93,23 @@ export default async function RenterDetailPage({
                         <Badge variant="outline" className="bg-green-50 text-green-700 hover:bg-green-50 hover:text-green-700">Active</Badge>
                     </div>
                     <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs sm:text-sm text-muted-foreground">
-                        <span>{renter.email}</span>
-                        <span className="hidden sm:inline">•</span>
                         <span>{renter.phone || "No Phone"}</span>
                         <span className="hidden sm:inline">•</span>
                         <span>Moved in {format(new Date(renter.moveInDate), "MMM d, yyyy")}</span>
                         <span className="hidden sm:inline">•</span>
                         <span>Rent: ₹{renter.monthlyRentAmount.toLocaleString('en-IN')}</span>
+                        {renter.securityDeposit != null && (
+                            <>
+                                <span className="hidden sm:inline">•</span>
+                                <span>Deposit: ₹{renter.securityDeposit.toLocaleString('en-IN')}</span>
+                            </>
+                        )}
+                        {renter.room && (Array.isArray(renter.room) ? renter.room.length > 0 : true) && (
+                            <>
+                                <span className="hidden sm:inline">•</span>
+                                <span>{Array.isArray(renter.room) ? renter.room.join(", ") : renter.room}</span>
+                            </>
+                        )}
                     </div>
                 </div>
                 <DropdownMenu>
@@ -96,10 +126,11 @@ export default async function RenterDetailPage({
                                 renterId={renter.id}
                                 initialData={{
                                     name: renter.name,
-                                    email: renter.email,
                                     phone: renter.phone,
                                     monthlyRentAmount: renter.monthlyRentAmount,
-                                    moveInDate: renter.moveInDate.toISOString()
+                                    moveInDate: renter.moveInDate.toISOString(),
+                                    securityDeposit: renter.securityDeposit,
+                                    room: renter.room,
                                 }}
                             />
                         </DropdownMenuItem>
@@ -117,7 +148,7 @@ export default async function RenterDetailPage({
                     <Card>
                         <CardHeader>
                             <CardTitle>Electricity Bill Generator</CardTitle>
-                            <CardDescription>Calculate the monthly bill and send a professional email. This will also record the bill into the payment history for this month.</CardDescription>
+                            <CardDescription>Calculate the monthly bill. This will also record the bill into the payment history for this month.</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <ElectricityBillGenerator
@@ -130,36 +161,11 @@ export default async function RenterDetailPage({
 
                     <Card>
                         <CardHeader>
-                            <CardTitle>Recent Payments & Bills</CardTitle>
+                            <CardTitle>Payment History</CardTitle>
+                            <CardDescription>All past payments with exact date and time they were marked as paid.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            {renter.payments.length === 0 ? (
-                                <p className="text-sm text-muted-foreground text-center py-4">No payment history yet.</p>
-                            ) : (
-                                <div className="space-y-4">
-                                    {renter.payments.map((payment) => (
-                                        <div key={payment.id} className="flex justify-between items-center p-3 sm:p-4 rounded-lg border border-border bg-card hover:bg-muted/50 transition-colors">
-                                            <div>
-                                                <p className="font-medium">Month: {payment.month}</p>
-                                                <p className="text-xs text-muted-foreground flex gap-4 mt-1">
-                                                    <span>Rent: ₹{renter.monthlyRentAmount.toLocaleString('en-IN')}</span>
-                                                    {(payment.electricityTotal != null && payment.electricityTotal > 0) && <span>Electricity: ₹{payment.electricityTotal.toFixed(2)}</span>}
-                                                </p>
-                                            </div>
-                                            <div className="flex flex-col gap-1 items-end">
-                                                <Badge variant={payment.rentPaid ? "default" : "destructive"} className="text-[10px] w-24 justify-center">
-                                                    {payment.rentPaid ? "Rent Paid" : "Rent Unpaid"}
-                                                </Badge>
-                                                {(payment.electricityTotal != null && payment.electricityTotal > 0) && (
-                                                    <Badge variant={payment.electricityPaid ? "default" : "destructive"} className="text-[10px] w-24 justify-center">
-                                                        {payment.electricityPaid ? "Elec Paid" : "Elec Unpaid"}
-                                                    </Badge>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                            <PaymentHistory payments={serializedPayments} />
                         </CardContent>
                     </Card>
                 </div>

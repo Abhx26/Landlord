@@ -74,15 +74,17 @@ model Renter {
   id                String    @id @default(auto()) @map("_id") @db.ObjectId
   userId            String    @db.ObjectId
   name              String
-  email             String
   phone             String
   monthlyRentAmount Float
   moveInDate        DateTime
+  securityDeposit   Float?
+  room              String[]
   
   // Relations
   user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   payments          Payment[]
   documents         Document[]
+  meterReadings     MeterReading[]
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -100,11 +102,20 @@ model Payment {
   month                  String    // e.g., "2023-10"
   
   rentPaid               Boolean   @default(false)
+  rentPaidAt             DateTime?
   
+  // Electricity bill fields
+  electricityStartDate   DateTime?
+  electricityEndDate     DateTime?
+  openingReading         Float?
+  closingReading         Float?
+  openingPhotoUrl        String?   // Cloudinary URL for opening meter photo
+  closingPhotoUrl        String?   // Cloudinary URL for closing meter photo
   electricityUnits       Float?
   electricityCostPerUnit Float?
   electricityTotal       Float?
   electricityPaid        Boolean   @default(false)
+  electricityPaidAt      DateTime?
   
   // Relations
   user                   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -116,6 +127,24 @@ model Payment {
   @@index([userId])
   @@index([renterId])
   @@map("payments")
+}
+
+model MeterReading {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  renterId         String   @db.ObjectId
+  month            String   // e.g., "2026-03"
+  meterPhotoUrl    String   // Cloudinary URL
+  unitsConsumed    Float
+  calculatedAmount Float
+  
+  // Relations
+  renter           Renter   @relation(fields: [renterId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([renterId])
+  @@map("meter_readings")
 }
 
 model Document {
